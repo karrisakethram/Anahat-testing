@@ -299,9 +299,15 @@
 
 # # Use this object for live RTP/network audio.
 # live_buffer = LiveAudioBuffer(detector)
+import sys
 import torch
 import torchaudio
 import numpy as np
+from pathlib import Path
+
+backend_dir = str(Path(__file__).resolve().parent.parent)
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
 
 from AASIST3.model import aasist3
 
@@ -329,6 +335,9 @@ class VoiceSpoofDetector:
 
         self.model = self.model.to(self.device)
         self.model.eval()
+
+        # Dynamic noise floor tracking for automatic VAD thresholding
+        self.noise_floor = 0.002
 
         print(f"Device: {self.device}")
         print("Model loaded successfully.")
@@ -411,20 +420,40 @@ class VoiceSpoofDetector:
                 f"Expected {WINDOW_SIZE}."
             )
 
-        max_amp = np.max(
-            np.abs(audio)
-        )
+        # -------------------------------------------------------------
+        # 1. AUTOMATIC DYNAMIC VOICE ACTIVITY DETECTION (VAD)
+        # -------------------------------------------------------------
+        rms = float(np.sqrt(np.mean(audio ** 2)))
 
-        if max_amp > 0:
-            audio = audio / max_amp
+        # Dynamically adapt noise floor to quietest ambient level in current stream
+        if rms > 0:
+            self.noise_floor = float(0.90 * self.noise_floor + 0.10 * min(self.noise_floor, rms))
+
+        # Dynamic VAD threshold: adapts between 0.002 (faint voice) and 0.010 (line static)
+        vad_threshold = float(np.clip(self.noise_floor * 2.5, 0.002, 0.010))
+
+        # Silence/Room noise threshold check
+        if rms < vad_threshold:
+            print(f"[AASIST3] Non-speech / Pause detected (RMS={rms:.6f} < Dynamic Threshold={vad_threshold:.6f}). Returning REAL.")
+            return {
+                "prediction": "REAL",
+                "spoof_probability": 0.0,
+                "real_probability": 1.0,
+                "is_speech": False
+            }
+
+        # -------------------------------------------------------------
+        # 2. RMS POWER NORMALIZATION (Target RMS = 0.1)
+        # -------------------------------------------------------------
+        audio = audio * (0.1 / (rms + 1e-8))
+        audio = np.clip(audio, -1.0, 1.0)
 
         waveform = torch.from_numpy(
             audio
-        ).unsqueeze(0)
+        ).unsqueeze(0).to(self.device)
 
-        waveform = waveform.to(
-            self.device
-        )
+        # Apply pre-emphasis filter as required by AASIST3 model dataset preprocessing
+        waveform = torchaudio.functional.preemphasis(waveform)
 
         with torch.no_grad():
 
@@ -444,35 +473,36 @@ class VoiceSpoofDetector:
             else:
                 logits = output
 
-            probabilities = torch.softmax(
-                logits,
-                dim=-1
-            )
-        print(
-            "[AASIST3]",
-            "logits=",
-            logits.detach().cpu().numpy(),
-            "probabilities=",
-            probabilities.detach().cpu().numpy()
-        )
-        real_probability = probabilities[
-            0, 0
-        ].item()
+            # -------------------------------------------------------------
+            # 3. CALIBRATED LOGIT DIFFERENCE SCORING
+            # -------------------------------------------------------------
+            logit_spoof = logits[0, 0].item()
+            logit_real = logits[0, 1].item()
+            
+            # Logit difference: positive means spoof, negative means real
+            logit_diff = logit_spoof - logit_real
+            # Sigmoid temperature scaling with T=6.0 for calibrated risk probability
+            spoof_probability = float(1.0 / (1.0 + np.exp(-(logit_diff / 6.0))))
+            real_probability = float(1.0 - spoof_probability)
 
-        spoof_probability = probabilities[
-            0, 1
-        ].item()
+        print(
+            f"[AASIST3] Speech Active (RMS={rms:.4f}) | "
+            f"Logits=[{logit_spoof:.2f}, {logit_real:.2f}] | "
+            f"Logit Diff={logit_diff:.2f} | "
+            f"Calibrated Spoof Prob={spoof_probability:.4f}"
+        )
 
         prediction = (
             "SPOOF"
-            if spoof_probability >= 0.5
+            if spoof_probability >= 0.50
             else "REAL"
         )
 
         return {
             "prediction": prediction,
-            "spoof_probability": spoof_probability,
-            "real_probability": real_probability
+            "spoof_probability": round(spoof_probability, 4),
+            "real_probability": round(real_probability, 4),
+            "is_speech": True
         }
 
     def predict(

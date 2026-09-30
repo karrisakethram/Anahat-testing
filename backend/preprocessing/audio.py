@@ -131,7 +131,7 @@ def preprocess_audio(file_path: str) -> np.ndarray:
 
     audio = normalize_audio(audio)
 
-    return audio
+    return audio, SAMPLE_RATE
 
 
 def create_chunks(audio: np.ndarray) -> list[np.ndarray]:

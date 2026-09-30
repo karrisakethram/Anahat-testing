@@ -32,7 +32,6 @@ import {
 } from 'lucide-react';
 
 import { useAnalysis } from '../context/AnalysisContext';
-import AIAssistant from "../components/AIAssistant";
 import Navbar from '../components/Navbar';
 import AudioUploader from '../components/AudioUploader';
 import PredictionCard from '../components/PredictionCard';
@@ -444,7 +443,6 @@ const navigate = useNavigate();
           </div>
         )}
       </main>
-      <AIAssistant />
       
     </div>
   );

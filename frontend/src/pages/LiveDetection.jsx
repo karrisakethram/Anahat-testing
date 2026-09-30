@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
-import AIAssistant from '../components/AIAssistant';
 
 import {
   Activity,
@@ -1761,8 +1760,6 @@ export default function LiveDetection() {
         )}
 
       </AnimatePresence>
-
-      <AIAssistant />
 
     </div>
   );

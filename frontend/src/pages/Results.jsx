@@ -9,7 +9,6 @@ import RecommendationCard from '../components/RecommendationCard';
 import AudioInfo from '../components/AudioInfo';
 import TechnicalAnalysis from '../components/TechnicalAnalysis';
 import RawJsonViewer from '../components/RawJsonViewer';
-import AIAssistant from '../components/AIAssistant';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import { exportAnalysisReport } from '../utils/exportReport';
@@ -90,7 +89,6 @@ export default function Results() {
             </Card>
           </motion.div>
         </main>
-        <AIAssistant />
       </div>
     );
   }
@@ -364,7 +362,6 @@ export default function Results() {
 
       </main>
 
-      <AIAssistant />
     </div>
   );
 }

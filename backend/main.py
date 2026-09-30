@@ -255,9 +255,9 @@ import tempfile
 import json
 import numpy as np
 
-from inference import detector, live_buffer
-from risk.risk_engine import calculate_risk
-from preprocessing.audio import preprocess_audio
+from backend.inference import detector, live_buffer
+from backend.risk.risk_engine import calculate_risk
+from backend.preprocessing.audio import preprocess_audio
 
 
 app = FastAPI(
