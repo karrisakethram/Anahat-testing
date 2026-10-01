@@ -34,7 +34,7 @@ MIN_AUDIO_SECONDS = 1.0         # shorter clips are rejected; anything longer is
 # LOGIT_BIAS moves the decision boundary. Derive it from YOUR data with
 # experiments/calibrate_threshold.py instead of guessing.
 LOGIT_TEMPERATURE = 6.0
-LOGIT_BIAS = 0.0
+LOGIT_BIAS = -4.48
 
 # Windows quieter than this (RMS, waveform in [-1, 1]) are treated as non-speech and
 # excluded from the average instead of being counted as "0.0 spoof".

@@ -103,9 +103,9 @@ class VoiceSpoofDetector:
             else:
                 logits = output
 
-        # AASIST3 training code: label 0 = spoof, label 1 = bonafide.
-        logit_spoof = logits[0, 0].item()
-        logit_real = logits[0, 1].item()
+        # MTUCI/AASIST3 pretrained checkpoint: label 0 = bonafide (real), label 1 = spoof (fake).
+        logit_real = logits[0, 0].item()
+        logit_spoof = logits[0, 1].item()
         logit_diff = logit_spoof - logit_real
 
         spoof_probability = diff_to_probability(logit_diff)
