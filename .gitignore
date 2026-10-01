@@ -7,5 +7,6 @@ frontend/dist/
 *.pth
 *.pt
 *.bin
-
+weights/
+*.locks
 frontend_backup/
